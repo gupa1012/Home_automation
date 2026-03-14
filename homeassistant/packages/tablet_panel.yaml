@@ -1,0 +1,139 @@
+##############################################################
+# packages/tablet_panel.yaml
+# Android-Wandtablet mit Fully Kiosk Browser
+#
+# Voraussetzung:
+#   1. Fully Kiosk Browser auf dem Tablet installieren
+#   2. Remote Administration aktivieren (Port 2323, Passwort setzen)
+#   3. Start-URL auf HA-Lovelace setzen
+#   4. "Keep Screen On" deaktivieren (HA steuert Bildschirm)
+#   5. WLAN-Lock aktivieren, damit Tablet im WLAN bleibt
+##############################################################
+
+# Fully Kiosk Browser HACS-Integration (falls installiert)
+# Alternative: REST-Sensor für Tablet-Status
+rest:
+  - resource: "http://!secret tablet_ip:2323/?cmd=deviceInfo&type=json&password=!secret fkb_password"
+    scan_interval: 30
+    sensor:
+      - name: "Tablet – Bildschirm"
+        value_template: "{{ value_json.isScreenOn }}"
+        icon: mdi:tablet
+      - name: "Tablet – Akku"
+        value_template: "{{ value_json.batteryLevel }}"
+        unit_of_measurement: "%"
+        device_class: battery
+        icon: mdi:battery
+      - name: "Tablet – aktuelle URL"
+        value_template: "{{ value_json.currentURL }}"
+        icon: mdi:web
+
+# Template-Sensor: Tablet-Status lesbar
+template:
+  - binary_sensor:
+      - name: "Tablet – online"
+        unique_id: tablet_online
+        icon: mdi:tablet-cellphone
+        # Gilt als online, wenn REST-Sensor einen Wert hat
+        state: >
+          {{ not is_state('sensor.tablet_bildschirm', 'unavailable') }}
+        device_class: connectivity
+
+# Input-Select: welche Seite soll das Tablet anzeigen
+input_select:
+  tablet_page:
+    name: "Tablet – angezeigte Seite"
+    options:
+      - Startseite
+      - Türklingel
+      - Solar
+      - Kameras
+      - Kalender
+    icon: mdi:tablet-dashboard
+
+# Automation: Tablet zur gewünschten Seite navigieren
+automation:
+  - id: tablet_navigate_to_page
+    alias: "Tablet – Seite wechseln"
+    trigger:
+      - platform: state
+        entity_id: input_select.tablet_page
+    action:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_select.tablet_page
+                state: "Startseite"
+            sequence:
+              - service: rest_command.tablet_load_url
+                data:
+                  tablet_ip: !secret tablet_ip
+                  fkb_password: !secret fkb_password
+                  url: "http://192.168.1.10:8123/lovelace/home?kiosk"
+          - conditions:
+              - condition: state
+                entity_id: input_select.tablet_page
+                state: "Türklingel"
+            sequence:
+              - service: rest_command.tablet_load_url
+                data:
+                  tablet_ip: !secret tablet_ip
+                  fkb_password: !secret fkb_password
+                  url: "http://192.168.1.10:8123/lovelace/doorbell?kiosk"
+          - conditions:
+              - condition: state
+                entity_id: input_select.tablet_page
+                state: "Solar"
+            sequence:
+              - service: rest_command.tablet_load_url
+                data:
+                  tablet_ip: !secret tablet_ip
+                  fkb_password: !secret fkb_password
+                  url: "http://192.168.1.10:8123/lovelace/solar?kiosk"
+          - conditions:
+              - condition: state
+                entity_id: input_select.tablet_page
+                state: "Kameras"
+            sequence:
+              - service: rest_command.tablet_load_url
+                data:
+                  tablet_ip: !secret tablet_ip
+                  fkb_password: !secret fkb_password
+                  url: "http://192.168.1.10:8123/lovelace/cameras?kiosk"
+
+  - id: tablet_auto_return_home
+    alias: "Tablet – Automatisch zur Startseite nach 5 Min."
+    description: >
+      Kehrt nach 5 Minuten zur Startseite zurück, wenn Türklingel-
+      Ansicht angezeigt wird.
+    trigger:
+      - platform: state
+        entity_id: input_select.tablet_page
+        to: "Türklingel"
+        for:
+          minutes: 5
+    action:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.tablet_page
+        data:
+          option: "Startseite"
+    mode: single
+
+  - id: tablet_night_mode_on
+    alias: "Tablet – Nachtmodus (Bildschirm aus)"
+    trigger:
+      - platform: time
+        at: "23:00:00"
+    action:
+      - service: script.tablet_screen_off
+    mode: single
+
+  - id: tablet_morning_wake
+    alias: "Tablet – Morgens aufwachen"
+    trigger:
+      - platform: time
+        at: "06:30:00"
+    action:
+      - service: script.tablet_load_home
+    mode: single

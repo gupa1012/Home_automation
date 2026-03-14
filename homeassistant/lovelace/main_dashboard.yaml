@@ -1,0 +1,212 @@
+##############################################################
+# lovelace/main_dashboard.yaml
+# Haupt-Dashboard – Übersicht
+#
+# Import in HA: Einstellungen → Dashboards → Dashboard hinzufügen
+# oder als Standard-Dashboard verwenden.
+##############################################################
+
+title: Mein Zuhause
+views:
+  - title: Übersicht
+    path: home
+    icon: mdi:home
+    badges:
+      - entity: binary_sensor.reolink_doorbell_visitor
+        name: Türklingel
+      - entity: sensor.solar_aktuelle_leistung_kw
+        name: Solar
+      - entity: input_boolean.notifications_do_not_disturb
+        name: Nicht stören
+    cards:
+      # Status-Leiste
+      - type: horizontal-stack
+        cards:
+          - type: entity
+            entity: sensor.solar_aktuelle_leistung_kw
+            name: Solar
+            icon: mdi:solar-power
+            state_color: true
+          - type: entity
+            entity: sensor.netzstrom_status
+            name: Netz
+            icon: mdi:transmission-tower
+          - type: entity
+            entity: sensor.tablet_akku
+            name: Tablet
+            icon: mdi:tablet
+
+      # Türklingel-Karte
+      - type: picture-entity
+        entity: camera.reolink_doorbell
+        name: Türklingel
+        show_state: false
+        camera_view: live
+        tap_action:
+          action: navigate
+          navigation_path: /lovelace/doorbell
+
+      # Kamera-Vorschau
+      - type: horizontal-stack
+        cards:
+          - type: picture-entity
+            entity: camera.reolink_cam_einfahrt
+            name: Einfahrt
+            camera_view: live
+          - type: picture-entity
+            entity: camera.reolink_cam_garten
+            name: Garten
+            camera_view: live
+
+      # Solar-Mini-Graph
+      - type: custom:mini-graph-card
+        name: Solarleistung (heute)
+        entities:
+          - entity: sensor.solar_aktuelle_leistung_kw
+            name: Leistung kW
+        hours_to_show: 24
+        points_per_hour: 4
+        line_color: "#f6a623"
+        fill: true
+        show:
+          icon: true
+          name: true
+          state: true
+          legend: false
+
+      # Schnellaktionen
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: button
+            name: Türklingel-Ansicht
+            icon: mdi:doorbell
+            tap_action:
+              action: navigate
+              navigation_path: /lovelace/doorbell
+          - type: button
+            name: Solar-Dashboard
+            icon: mdi:solar-power
+            tap_action:
+              action: navigate
+              navigation_path: /lovelace/solar
+          - type: button
+            name: Kameras
+            icon: mdi:cctv
+            tap_action:
+              action: navigate
+              navigation_path: /lovelace/cameras
+          - type: button
+            name: Tablet an
+            icon: mdi:tablet
+            tap_action:
+              action: call-service
+              service: script.tablet_load_home
+          - type: button
+            name: Tablet aus
+            icon: mdi:tablet-off
+            tap_action:
+              action: call-service
+              service: script.tablet_screen_off
+          - type: button
+            name: Nicht stören
+            icon: mdi:bell-off
+            entity: input_boolean.notifications_do_not_disturb
+            tap_action:
+              action: toggle
+
+  - title: Türklingel
+    path: doorbell
+    icon: mdi:doorbell
+    cards:
+      - type: picture-entity
+        entity: camera.reolink_doorbell
+        name: "Türklingel – Live"
+        camera_view: live
+        show_state: true
+        show_name: true
+
+      - type: glance
+        title: Türklingel Status
+        entities:
+          - entity: binary_sensor.reolink_doorbell_visitor
+            name: Klingeln
+          - entity: binary_sensor.reolink_doorbell_motion
+            name: Bewegung
+          - entity: input_boolean.doorbell_active
+            name: Aktiv
+
+      - type: history-graph
+        title: Klingeln – Verlauf (24h)
+        entities:
+          - entity: binary_sensor.reolink_doorbell_visitor
+            name: Klingeln
+        hours_to_show: 24
+
+  - title: Solar
+    path: solar
+    icon: mdi:solar-power
+    cards:
+      - type: glance
+        title: Solar Echtzeit
+        entities:
+          - entity: sensor.solar_aktuelle_leistung_kw
+            name: Leistung
+          - entity: sensor.solar_uberschuss_w
+            name: Überschuss
+          - entity: sensor.solar_eigenverbrauchsquote
+            name: Eigenverbrauch
+          - entity: sensor.solar_autarkiequote
+            name: Autarkie
+          - entity: sensor.sma_total_yield_today
+            name: Heute kWh
+          - entity: sensor.solar_yield_daily
+            name: Zähler tägl.
+
+      - type: custom:mini-graph-card
+        name: Solarleistung (letzte 24h)
+        entities:
+          - entity: sensor.sma_power_ac
+            name: Erzeugung W
+            color: "#f6a623"
+          - entity: sensor.sma_power_feedin
+            name: Einspeisung W
+            color: "#00c853"
+          - entity: sensor.sma_power_drawfrom
+            name: Netzbezug W
+            color: "#e53935"
+        hours_to_show: 24
+        points_per_hour: 4
+        fill: false
+
+      - type: entity
+        entity: input_number.solar_surplus_threshold_w
+        name: Überschuss-Schwelle
+
+      - type: entity
+        entity: input_boolean.solar_surplus_mode
+        name: Überschuss-Modus aktiv
+
+  - title: Kameras
+    path: cameras
+    icon: mdi:cctv
+    cards:
+      - type: picture-entity
+        entity: camera.reolink_doorbell
+        name: Türklingel
+        camera_view: live
+      - type: picture-entity
+        entity: camera.reolink_cam_einfahrt
+        name: Einfahrt
+        camera_view: live
+      - type: picture-entity
+        entity: camera.reolink_cam_garten
+        name: Garten
+        camera_view: live
+      - type: entity
+        entity: binary_sensor.bewegung_erkannt_irgendwo
+        name: Bewegung (irgendwo)
+      - type: entity
+        entity: sensor.letzte_bewegung
+        name: Letzte Bewegung

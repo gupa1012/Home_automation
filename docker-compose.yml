@@ -1,0 +1,59 @@
+---
+# Home Automation Docker Compose Stack
+# Startet: Home Assistant, Mosquitto MQTT, Portainer
+#
+# Verwendung:
+#   cp .env.example .env    # Variablen anpassen
+#   docker compose up -d
+#
+# Home Assistant erreichbar unter: http://<server-ip>:8123
+
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+    volumes:
+      - ${HA_CONFIG_PATH:-./homeassistant}:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+    depends_on:
+      - mosquitto
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8123"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mosquitto:
+    container_name: mosquitto
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:latest
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+
+volumes:
+  portainer_data:

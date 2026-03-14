@@ -1,0 +1,117 @@
+####################################################################
+# Home Assistant – Haupt-Konfiguration
+# Dokumentation: https://www.home-assistant.io/docs/configuration/
+####################################################################
+
+homeassistant:
+  name: Mein Zuhause
+  latitude: !secret home_latitude
+  longitude: !secret home_longitude
+  elevation: !secret home_elevation
+  unit_system: metric
+  currency: EUR
+  country: DE
+  time_zone: Europe/Berlin
+  # Externe URL (z. B. über DuckDNS oder Nabu Casa)
+  external_url: !secret external_url
+  internal_url: !secret internal_url
+  # Pakete: ermöglicht modulare Konfiguration
+  packages: !include_dir_named packages/
+
+# HTTP-Einstellungen
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 127.0.0.1
+    - ::1
+
+# Recorder – Verlauf in SQLite speichern
+recorder:
+  purge_keep_days: 30
+  exclude:
+    entities:
+      - sensor.time
+      - sensor.date
+
+# Protokollierung
+logger:
+  default: warning
+  logs:
+    homeassistant.components.reolink: info
+    homeassistant.components.sma: info
+
+# Frontend / Lovelace
+frontend:
+  themes: !include_dir_merge_named themes/
+
+# Lovelace im YAML-Modus (optional, ermöglicht Versionskontrolle)
+lovelace:
+  mode: storage
+  resources:
+    - url: /hacsfiles/mini-graph-card/mini-graph-card-bundle.js
+      type: module
+    - url: /hacsfiles/button-card/button-card.js
+      type: module
+
+# Basis-Komponenten
+default_config:
+
+# Automations, Scripts, Scenes aus eigenen Dateien
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# MQTT (für Erweiterungen wie Zigbee2MQTT, Tasmota, Shelly)
+mqtt:
+  broker: localhost
+  port: 1883
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  discovery: true
+  discovery_prefix: homeassistant
+
+# REST-Befehle für Fully Kiosk Browser (Tablet-Steuerung)
+rest_command:
+  tablet_screen_on:
+    url: "http://{{ tablet_ip }}:2323/?cmd=screenOn&password={{ fkb_password }}"
+    method: GET
+  tablet_screen_off:
+    url: "http://{{ tablet_ip }}:2323/?cmd=screenOff&password={{ fkb_password }}"
+    method: GET
+  tablet_load_url:
+    url: "http://{{ tablet_ip }}:2323/?cmd=loadURL&url={{ url | urlencode }}&password={{ fkb_password }}"
+    method: GET
+  tablet_reload:
+    url: "http://{{ tablet_ip }}:2323/?cmd=loadStartURL&password={{ fkb_password }}"
+    method: GET
+
+# Input-Helfer
+input_boolean:
+  doorbell_active:
+    name: Türklingel aktiv
+    icon: mdi:doorbell
+  solar_surplus_mode:
+    name: Solarüberschuss-Modus
+    icon: mdi:solar-power
+
+input_number:
+  solar_surplus_threshold_w:
+    name: Solarüberschuss-Schwelle (W)
+    min: 100
+    max: 5000
+    step: 100
+    unit_of_measurement: W
+    icon: mdi:solar-power
+
+# Template-Sensoren (Übersicht)
+template:
+  - sensor:
+      - name: "Netzstrom-Status"
+        icon: mdi:transmission-tower
+        state: >
+          {% set feed = states('sensor.sma_power_feedin') | float(0) %}
+          {% set draw = states('sensor.sma_power_drawfrom') | float(0) %}
+          {% if feed > 0 %}Einspeisung {{ feed | round(0) }} W
+          {% elif draw > 0 %}Bezug {{ draw | round(0) }} W
+          {% else %}Ausgeglichen
+          {% endif %}

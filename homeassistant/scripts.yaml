@@ -1,0 +1,55 @@
+##############################################################
+# scripts.yaml – Wiederverwendbare Skripte
+##############################################################
+
+# Tablet: Türklingel-Ansicht anzeigen
+tablet_show_doorbell:
+  alias: "Tablet – Türklingel-Ansicht anzeigen"
+  description: >
+    Schaltet das Tablet ein und navigiert zur Türklingel-Dashboard-Seite.
+  sequence:
+    - service: rest_command.tablet_screen_on
+      data:
+        tablet_ip: !secret tablet_ip
+        fkb_password: !secret fkb_password
+    - delay:
+        milliseconds: 800
+    - service: rest_command.tablet_load_url
+      data:
+        tablet_ip: !secret tablet_ip
+        fkb_password: !secret fkb_password
+        url: "http://192.168.1.10:8123/lovelace/doorbell?kiosk"
+  mode: single
+
+# Tablet: Startseite laden
+tablet_load_home:
+  alias: "Tablet – Startseite laden"
+  sequence:
+    - service: rest_command.tablet_reload
+      data:
+        tablet_ip: !secret tablet_ip
+        fkb_password: !secret fkb_password
+  mode: single
+
+# Tablet: Bildschirm ausschalten
+tablet_screen_off:
+  alias: "Tablet – Bildschirm ausschalten"
+  sequence:
+    - service: rest_command.tablet_screen_off
+      data:
+        tablet_ip: !secret tablet_ip
+        fkb_password: !secret fkb_password
+  mode: single
+
+# Kamera-Snapshot speichern
+save_doorbell_snapshot:
+  alias: "Türklingel – Snapshot speichern"
+  description: Speichert ein Snapshot-Bild der Türklingel-Kamera.
+  sequence:
+    - service: camera.snapshot
+      target:
+        entity_id: camera.reolink_doorbell
+      data:
+        filename: "/config/www/snapshots/doorbell_{{ now().strftime('%Y%m%d_%H%M%S') }}.jpg"
+  mode: queued
+  max: 5

@@ -1,0 +1,56 @@
+##############################################################
+# packages/reolink.yaml
+# Reolink Türklingel und Überwachungskameras
+#
+# Voraussetzung:
+#   Reolink-Integration über UI einrichten:
+#   Einstellungen → Integrationen → Reolink hinzufügen
+#   (eine Instanz pro Kamera/Türklingel)
+#
+# Diese Datei definiert:
+#   - Kamera-Gruppen
+#   - Template-Sensoren für Bewegungsstatus
+#   - REST-Sensor für Türklingel-Status (alternativ zu Integration)
+##############################################################
+
+# Kamera-Gruppen für einfachen Zugriff
+group:
+  alle_kameras:
+    name: "Alle Kameras"
+    entities:
+      - camera.reolink_doorbell
+      - camera.reolink_cam_einfahrt
+      - camera.reolink_cam_garten
+
+  alle_bewegungssensoren:
+    name: "Bewegungssensoren"
+    entities:
+      - binary_sensor.reolink_doorbell_motion
+      - binary_sensor.reolink_cam_einfahrt_motion
+      - binary_sensor.reolink_cam_garten_motion
+
+# Template-Sensor: letzte Bewegung irgendwo
+template:
+  - binary_sensor:
+      - name: "Bewegung erkannt (irgendwo)"
+        icon: mdi:motion-sensor
+        state: >
+          {{ is_state('binary_sensor.reolink_doorbell_motion', 'on')
+             or is_state('binary_sensor.reolink_cam_einfahrt_motion', 'on')
+             or is_state('binary_sensor.reolink_cam_garten_motion', 'on') }}
+        device_class: motion
+
+  - sensor:
+      - name: "Letzte Bewegung"
+        icon: mdi:clock-outline
+        state: >
+          {% set times = [
+            states.binary_sensor.reolink_doorbell_motion.last_changed,
+            states.binary_sensor.reolink_cam_einfahrt_motion.last_changed,
+            states.binary_sensor.reolink_cam_garten_motion.last_changed
+          ] | select('ne', None) | list %}
+          {% if times %}
+            {{ times | max | as_timestamp | timestamp_custom('%d.%m.%Y %H:%M') }}
+          {% else %}
+            Unbekannt
+          {% endif %}

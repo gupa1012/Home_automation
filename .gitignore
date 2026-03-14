@@ -1,0 +1,31 @@
+# Secrets – NIEMALS committen!
+homeassistant/secrets.yaml
+.env
+
+# Home Assistant Laufzeit-Daten
+homeassistant/.storage/
+homeassistant/tts/
+homeassistant/deps/
+homeassistant/.cloud/
+homeassistant/home-assistant.log
+homeassistant/home-assistant_v2.db
+homeassistant/home-assistant_v2.db-shm
+homeassistant/home-assistant_v2.db-wal
+
+# Mosquitto Laufzeit-Daten
+mosquitto/data/
+mosquitto/log/
+mosquitto/config/passwd
+
+# Docker
+.docker/
+
+# Snapshots
+homeassistant/backups/
+
+# Kamera-Snapshots (können groß werden)
+homeassistant/www/snapshots/
+
+# OS
+.DS_Store
+Thumbs.db
