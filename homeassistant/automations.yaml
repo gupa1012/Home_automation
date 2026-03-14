@@ -175,6 +175,6 @@
         title: "☀️ Solarbericht heute"
         message: >
           Ertrag: {{ states('sensor.sma_total_yield_today') }} kWh
-          | Eigenverbrauch: {{ states('sensor.sma_self_consumption_today') }} kWh
-          | Eingespeist: {{ states('sensor.sma_grid_feedin_today') }} kWh
+          | Eigenverbrauch: {{ states('sensor.solar_eigenverbrauchsquote') }} %
+          | Eingespeist: {{ states('sensor.grid_feedin_daily') }} kWh
   mode: single

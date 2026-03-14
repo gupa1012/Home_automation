@@ -33,6 +33,7 @@ group:
 template:
   - binary_sensor:
       - name: "Bewegung erkannt (irgendwo)"
+        unique_id: reolink_any_motion
         icon: mdi:motion-sensor
         state: >
           {{ is_state('binary_sensor.reolink_doorbell_motion', 'on')
@@ -42,6 +43,7 @@ template:
 
   - sensor:
       - name: "Letzte Bewegung"
+        unique_id: reolink_last_motion_time
         icon: mdi:clock-outline
         state: >
           {% set times = [

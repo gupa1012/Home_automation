@@ -80,6 +80,10 @@ template:
           {{ [states('sensor.sma_power_feedin') | float(0), 0] | max | round(0) }}
 
 # Statistik-Sensoren für Langzeiterfassung
+# Hinweis: Die SMA-Integration liefert je nach Gerät unterschiedliche Entity-Namen.
+# Die tatsächlichen Namen findest du unter Einstellungen → Integrationen → SMA → Entitäten.
+# Häufig verwendete Namen: sensor.sma_total_yield, sensor.sma_metering_total_yield usw.
+# Passe die source-Angaben bei Bedarf an die tatsächlichen Entity-Namen an.
 utility_meter:
   solar_yield_daily:
     name: "Solar Tagesertrag"
@@ -91,9 +95,11 @@ utility_meter:
     cycle: monthly
   grid_feedin_daily:
     name: "Einspeisung täglich"
-    source: sensor.sma_grid_feedin_total
+    # sensor.sma_metering_total_yield oder sensor.sma_total_yield_today je nach Gerät
+    source: sensor.sma_metering_total_yield
     cycle: daily
   grid_drawfrom_daily:
     name: "Netzbezug täglich"
-    source: sensor.sma_grid_drawfrom_total
+    # sensor.sma_metering_total_absorbed oder äquivalenter SMA-Sensor
+    source: sensor.sma_metering_total_absorbed
     cycle: daily

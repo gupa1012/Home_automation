@@ -1,5 +1,10 @@
 ##############################################################
 # scripts.yaml – Wiederverwendbare Skripte
+#
+# Hinweis Sicherheit: Die Fully Kiosk Browser (FKB) REST-API
+# überträgt das Passwort als URL-Parameter im Klartext.
+# Diese Befehle sollten ausschließlich im lokalen, vertrauenswürdigen
+# Heimnetzwerk ausgeführt werden.
 ##############################################################
 
 # Tablet: Türklingel-Ansicht anzeigen
@@ -10,15 +15,15 @@ tablet_show_doorbell:
   sequence:
     - service: rest_command.tablet_screen_on
       data:
-        tablet_ip: !secret tablet_ip
-        fkb_password: !secret fkb_password
+        tablet_ip: "{{ states('input_text.tablet_ip') }}"
+        fkb_password: "{{ states('input_text.fkb_password') }}"
     - delay:
         milliseconds: 800
     - service: rest_command.tablet_load_url
       data:
-        tablet_ip: !secret tablet_ip
-        fkb_password: !secret fkb_password
-        url: "http://192.168.1.10:8123/lovelace/doorbell?kiosk"
+        tablet_ip: "{{ states('input_text.tablet_ip') }}"
+        fkb_password: "{{ states('input_text.fkb_password') }}"
+        url: "{{ states('input_text.ha_internal_url') }}/lovelace/doorbell?kiosk"
   mode: single
 
 # Tablet: Startseite laden
@@ -27,8 +32,8 @@ tablet_load_home:
   sequence:
     - service: rest_command.tablet_reload
       data:
-        tablet_ip: !secret tablet_ip
-        fkb_password: !secret fkb_password
+        tablet_ip: "{{ states('input_text.tablet_ip') }}"
+        fkb_password: "{{ states('input_text.fkb_password') }}"
   mode: single
 
 # Tablet: Bildschirm ausschalten
@@ -37,8 +42,8 @@ tablet_screen_off:
   sequence:
     - service: rest_command.tablet_screen_off
       data:
-        tablet_ip: !secret tablet_ip
-        fkb_password: !secret fkb_password
+        tablet_ip: "{{ states('input_text.tablet_ip') }}"
+        fkb_password: "{{ states('input_text.fkb_password') }}"
   mode: single
 
 # Kamera-Snapshot speichern

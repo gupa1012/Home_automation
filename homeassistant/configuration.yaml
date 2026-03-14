@@ -71,6 +71,8 @@ mqtt:
   discovery_prefix: homeassistant
 
 # REST-Befehle für Fully Kiosk Browser (Tablet-Steuerung)
+# Sicherheitshinweis: Das FKB-Passwort wird als URL-Parameter übertragen.
+# Diese Befehle nur im lokalen Heimnetzwerk (VLAN/LAN) verwenden.
 rest_command:
   tablet_screen_on:
     url: "http://{{ tablet_ip }}:2323/?cmd=screenOn&password={{ fkb_password }}"

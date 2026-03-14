@@ -8,12 +8,22 @@
 #   3. Start-URL auf HA-Lovelace setzen
 #   4. "Keep Screen On" deaktivieren (HA steuert Bildschirm)
 #   5. WLAN-Lock aktivieren, damit Tablet im WLAN bleibt
+#
+# Hinweis Sicherheit:
+#   Die Fully Kiosk Browser REST-API überträgt das Passwort als
+#   URL-Parameter im Klartext (z. B. ?password=xxx). Dieses
+#   Verfahren ist vom FKB-Hersteller so vorgesehen. Stelle sicher,
+#   dass der Tablet-Port 2323 NUR im lokalen Heimnetzwerk
+#   erreichbar ist (Firewall/Router entsprechend konfigurieren).
 ##############################################################
 
 # Fully Kiosk Browser HACS-Integration (falls installiert)
 # Alternative: REST-Sensor für Tablet-Status
+# HINWEIS: resource_template liest Tablet-IP und FKB-Passwort aus input_text-Helfern,
+# die beim ersten Start in der HA-UI unter Einstellungen → Helfer befüllt werden.
 rest:
-  - resource: "http://!secret tablet_ip:2323/?cmd=deviceInfo&type=json&password=!secret fkb_password"
+  - resource_template: >
+      http://{{ states('input_text.tablet_ip') }}:2323/?cmd=deviceInfo&type=json&password={{ states('input_text.fkb_password') }}
     scan_interval: 30
     sensor:
       - name: "Tablet – Bildschirm"
@@ -27,6 +37,23 @@ rest:
       - name: "Tablet – aktuelle URL"
         value_template: "{{ value_json.currentURL }}"
         icon: mdi:web
+
+# Input-Text-Helfer für dynamische Konfiguration (werden in HA-UI befüllt)
+input_text:
+  tablet_ip:
+    name: "Tablet – IP-Adresse"
+    initial: "192.168.1.100"
+    pattern: "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+    icon: mdi:ip-network
+  fkb_password:
+    name: "Fully Kiosk Browser – Passwort"
+    initial: ""
+    mode: password
+    icon: mdi:lock
+  ha_internal_url:
+    name: "HA – Interne URL"
+    initial: "http://192.168.1.10:8123"
+    icon: mdi:web
 
 # Template-Sensor: Tablet-Status lesbar
 template:
@@ -67,9 +94,9 @@ automation:
             sequence:
               - service: rest_command.tablet_load_url
                 data:
-                  tablet_ip: !secret tablet_ip
-                  fkb_password: !secret fkb_password
-                  url: "http://192.168.1.10:8123/lovelace/home?kiosk"
+                  tablet_ip: "{{ states('input_text.tablet_ip') }}"
+                  fkb_password: "{{ states('input_text.fkb_password') }}"
+                  url: "{{ states('input_text.ha_internal_url') }}/lovelace/home?kiosk"
           - conditions:
               - condition: state
                 entity_id: input_select.tablet_page
@@ -77,9 +104,9 @@ automation:
             sequence:
               - service: rest_command.tablet_load_url
                 data:
-                  tablet_ip: !secret tablet_ip
-                  fkb_password: !secret fkb_password
-                  url: "http://192.168.1.10:8123/lovelace/doorbell?kiosk"
+                  tablet_ip: "{{ states('input_text.tablet_ip') }}"
+                  fkb_password: "{{ states('input_text.fkb_password') }}"
+                  url: "{{ states('input_text.ha_internal_url') }}/lovelace/doorbell?kiosk"
           - conditions:
               - condition: state
                 entity_id: input_select.tablet_page
@@ -87,9 +114,9 @@ automation:
             sequence:
               - service: rest_command.tablet_load_url
                 data:
-                  tablet_ip: !secret tablet_ip
-                  fkb_password: !secret fkb_password
-                  url: "http://192.168.1.10:8123/lovelace/solar?kiosk"
+                  tablet_ip: "{{ states('input_text.tablet_ip') }}"
+                  fkb_password: "{{ states('input_text.fkb_password') }}"
+                  url: "{{ states('input_text.ha_internal_url') }}/lovelace/solar?kiosk"
           - conditions:
               - condition: state
                 entity_id: input_select.tablet_page
@@ -97,9 +124,9 @@ automation:
             sequence:
               - service: rest_command.tablet_load_url
                 data:
-                  tablet_ip: !secret tablet_ip
-                  fkb_password: !secret fkb_password
-                  url: "http://192.168.1.10:8123/lovelace/cameras?kiosk"
+                  tablet_ip: "{{ states('input_text.tablet_ip') }}"
+                  fkb_password: "{{ states('input_text.fkb_password') }}"
+                  url: "{{ states('input_text.ha_internal_url') }}/lovelace/cameras?kiosk"
 
   - id: tablet_auto_return_home
     alias: "Tablet – Automatisch zur Startseite nach 5 Min."
