@@ -1,0 +1,9 @@
+##############################################################
+# scenes.yaml – Szenen
+##############################################################
+
+- id: scene_doorbell_view
+  name: "Türklingel-Ansicht"
+  entities:
+    input_boolean.doorbell_active:
+      state: "on"

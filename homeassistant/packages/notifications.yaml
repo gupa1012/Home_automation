@@ -1,0 +1,55 @@
+##############################################################
+# packages/notifications.yaml
+# Benachrichtigungs-Gruppen und -Konfiguration
+#
+# Voraussetzung:
+#   Home Assistant Companion App auf allen Mobilgeräten
+#   installieren und mit dem HA-Server verbinden.
+##############################################################
+
+# Benachrichtigungsgruppe: alle Personen
+notify:
+  - name: mobile_app_group_all
+    platform: group
+    services:
+      - service: !secret notify_person1_device
+      - service: !secret notify_person2_device
+
+# Input-Boolean: Benachrichtigungen ein-/ausschalten
+input_boolean:
+  notifications_doorbell:
+    name: "Benachrichtigung – Türklingel"
+    icon: mdi:bell
+  notifications_motion:
+    name: "Benachrichtigung – Bewegung"
+    icon: mdi:motion-sensor
+  notifications_solar:
+    name: "Benachrichtigung – Solar"
+    icon: mdi:solar-power
+  notifications_do_not_disturb:
+    name: "Nicht stören"
+    icon: mdi:bell-off
+
+# Automation: Nicht-stören-Modus automatisch aktivieren
+automation:
+  - id: dnd_night_on
+    alias: "Nicht stören – Nacht aktivieren"
+    trigger:
+      - platform: time
+        at: "22:30:00"
+    action:
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.notifications_do_not_disturb
+    mode: single
+
+  - id: dnd_morning_off
+    alias: "Nicht stören – Morgens deaktivieren"
+    trigger:
+      - platform: time
+        at: "07:00:00"
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.notifications_do_not_disturb
+    mode: single

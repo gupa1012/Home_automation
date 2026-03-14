@@ -1,0 +1,180 @@
+##############################################################
+# automations.yaml
+# Alle Home-Automation-Automationen
+##############################################################
+
+###############################################
+# TÜRKLINGEL – Tablet wecken & Stream anzeigen
+###############################################
+
+- id: doorbell_ring_wake_tablet
+  alias: "Türklingel – Tablet wecken und Kamerabild anzeigen"
+  description: >
+    Wenn jemand klingelt: Tablet-Bildschirm einschalten und zur
+    Türklingel-Dashboard-Ansicht navigieren.
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.reolink_doorbell_visitor
+      to: "on"
+  action:
+    - service: script.tablet_show_doorbell
+    - service: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.doorbell_active
+  mode: single
+  max_exceeded: silent
+
+- id: doorbell_ring_notify_mobile
+  alias: "Türklingel – Push-Benachrichtigung senden"
+  description: Sendet eine Benachrichtigung mit Kamerabild auf alle Handys.
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.reolink_doorbell_visitor
+      to: "on"
+  action:
+    - service: notify.mobile_app_group_all
+      data:
+        title: "🔔 Jemand an der Tür!"
+        message: "Es hat geklingelt."
+        data:
+          image: /api/camera_proxy/camera.reolink_doorbell
+          clickAction: /lovelace/doorbell
+          channel: doorbell
+          importance: high
+          ttl: 0
+          priority: high
+  mode: single
+
+- id: doorbell_reset_active_flag
+  alias: "Türklingel – Aktiv-Flag zurücksetzen"
+  description: Setzt das Türklingel-Flag nach 30 Sekunden zurück.
+  trigger:
+    - platform: state
+      entity_id: input_boolean.doorbell_active
+      to: "on"
+      for:
+        seconds: 30
+  action:
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.doorbell_active
+  mode: single
+
+- id: doorbell_screen_off_after_inactivity
+  alias: "Tablet – Bildschirm nach 3 Min. Inaktivität ausschalten"
+  description: >
+    Schaltet den Tablet-Bildschirm aus, wenn länger als 3 Minuten
+    keine Klingelaktion mehr stattgefunden hat.
+  trigger:
+    - platform: state
+      entity_id: input_boolean.doorbell_active
+      to: "off"
+      for:
+        minutes: 3
+  action:
+    - service: script.tablet_screen_off
+  mode: single
+
+###############################################
+# BEWEGUNGSERKENNUNG – Kameras
+###############################################
+
+- id: camera_motion_doorbell_notify
+  alias: "Bewegung – Türklingel-Kamera"
+  description: Sendet eine Benachrichtigung bei Bewegung vor der Haustür.
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.reolink_doorbell_motion
+      to: "on"
+  condition:
+    - condition: time
+      after: "06:00:00"
+      before: "23:00:00"
+  action:
+    - service: notify.mobile_app_group_all
+      data:
+        title: "📹 Bewegung – Haustür"
+        message: "Bewegung vor der Haustür erkannt."
+        data:
+          image: /api/camera_proxy/camera.reolink_doorbell
+          channel: motion
+  mode: single
+  max_exceeded: silent
+
+- id: camera_motion_einfahrt_notify
+  alias: "Bewegung – Einfahrt-Kamera"
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.reolink_cam_einfahrt_motion
+      to: "on"
+  condition:
+    - condition: time
+      after: "06:00:00"
+      before: "23:00:00"
+  action:
+    - service: notify.mobile_app_group_all
+      data:
+        title: "📹 Bewegung – Einfahrt"
+        message: "Bewegung in der Einfahrt erkannt."
+        data:
+          image: /api/camera_proxy/camera.reolink_cam_einfahrt
+          channel: motion
+  mode: single
+  max_exceeded: silent
+
+###############################################
+# SOLAR – Überschuss-Steuerung
+###############################################
+
+- id: solar_surplus_mode_on
+  alias: "Solar – Überschuss-Modus aktivieren"
+  description: >
+    Aktiviert den Solarüberschuss-Modus, wenn die Einspeisung
+    die konfigurierte Schwelle überschreitet.
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.sma_power_feedin
+      above: input_number.solar_surplus_threshold_w
+      for:
+        minutes: 2
+  action:
+    - service: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.solar_surplus_mode
+    - service: notify.mobile_app_group_all
+      data:
+        title: "☀️ Solarüberschuss"
+        message: >
+          {{ states('sensor.sma_power_feedin') | round(0) }} W Überschuss.
+          Hochverbraucher können jetzt gestartet werden.
+  mode: single
+
+- id: solar_surplus_mode_off
+  alias: "Solar – Überschuss-Modus deaktivieren"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.sma_power_feedin
+      below: 50
+      for:
+        minutes: 5
+  action:
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.solar_surplus_mode
+  mode: single
+
+- id: solar_daily_report
+  alias: "Solar – Tagesbericht"
+  description: Sendet jeden Abend eine Zusammenfassung des Solarertrags.
+  trigger:
+    - platform: time
+      at: "21:00:00"
+  action:
+    - service: notify.mobile_app_group_all
+      data:
+        title: "☀️ Solarbericht heute"
+        message: >
+          Ertrag: {{ states('sensor.sma_total_yield_today') }} kWh
+          | Eigenverbrauch: {{ states('sensor.solar_eigenverbrauchsquote') }} %
+          | Eingespeist: {{ states('sensor.grid_feedin_daily') }} kWh
+  mode: single
